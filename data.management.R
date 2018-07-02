@@ -25,8 +25,8 @@ papers$affiliation = gsub('Hopital ', 'Hôpital ', papers$affiliation) # to be c
 # fixes for merge with Leiden
 papers$affiliation = gsub("St Mary's Hospital London", "St. Mary's Hospital, London", papers$affiliation) # 
 papers$affiliation = gsub("All India Institute of Medical Sciences, New Delhi", "All India Institute of Medical Science, New Delhi", papers$affiliation) # 
-papers$affiliation = gsub("Ataturk University, Faculty of Medicine",'Atatürk University', papers$affiliation)
-papers$affiliation = gsub('Universitatea Babes-Bolyai din Cluj-Napoca','Babeș-Bolyai University', papers$affiliation)
+papers$affiliation = gsub("Ataturk University, Faculty of Medicine","Atatürk University", papers$affiliation)
+papers$affiliation = gsub("Universitatea Babes-Bolyai din Cluj-Napoca", "Babeș-Bolyai University", papers$affiliation)
 papers$affiliation = gsub('Universita degli Studi di Brescia|Universita degli Studi di Brescia, Facolta di Medicina e Chirurgia',"Brescia University" , papers$affiliation)
 papers$affiliation = gsub("Beijing An Ding Hospital, Capital Medical University|Capital Medical University China", "Capital Medical University", papers$affiliation)
 papers$affiliation = gsub('Universitat Oldenburg','Carl von Ossietzky University of Oldenburg', papers$affiliation)
@@ -121,7 +121,13 @@ papers$affiliation = gsub("Federal University of Ceara|Universidade Federal do C
 papers$affiliation = gsub("Universidade Federal do Parana", "Universidade Federal do Paraná", papers$affiliation)
 papers$affiliation = gsub("Universidade Federal Fluminense" , "Universidade Federal Fluminense - UFF"  , papers$affiliation)
 papers$affiliation = gsub("Universita Cattolica del Sacro Cuore|Universita Cattolica del Sacro Cuore, Rome|Universita Cattolica del Sacro Cuore, Rome, Facolta di Medicina e Chirurgia", "Università Cattolica del Sacro Cuore",papers$affiliation)
-papers$affiliation = gsub("Universita degli Studi di Genova" , "Università degli Studi di Genova" , papers$affiliation)
+papers$affiliation = gsub("Universita degli Studi di Genova|Università degli Studi di Genova" , "University of Genoa", papers$affiliation)
+papers$affiliation = gsub("Universita degli studi Magna Graecia di Catanzaro", 'Magna Græcia University', papers$affiliation)
+papers$affiliation = gsub("Universita Campus Bio-Medico di Roma", "Campus Bio-Medico University", papers$affiliation)
+papers$affiliation = gsub('Universita Bocconi','Bocconi University', papers$affiliation)
+papers$affiliation = gsub("Universita degli Studi dell'Insubria", 'University of Insubria', papers$affiliation)
+papers$affiliation = gsub("Universita degli Studi del Piemonte Orientale Amedeo Avogadro, Novara", 'University of Eastern Piedmont', papers$affiliation)
+papers$affiliation = gsub('Hunter Medical Research Institute, Australia', 'University of Newcastle, Australia', papers$affiliation)
 papers$affiliation = gsub("Universitat Hamburg", "Universität Hamburg", papers$affiliation)
 papers$affiliation = gsub("Universita Politecnica delle Marche|Université Politecnica delle Marche" , "Università Politecnica delle Marche", papers$affiliation)
 papers$affiliation = gsub("Universitat Politecnica de Catalunya" , "Universitat Politècnica de Catalunya" ,papers$affiliation)
@@ -219,7 +225,7 @@ papers$affiliation = gsub("Universitat Tubingen|Universitatsklinikum Tubingen Me
 papers$affiliation = gsub("Turun yliopisto|Turun Yliopistollinen Keskussairaala" , "University of Turku", papers$affiliation)
 papers$affiliation = gsub("Universita degli Studi di Torino", "University of Turin", papers$affiliation)
 papers$affiliation = gsub("Universitatsklinikum Ulm|Universitat Ulm" , "University of Ulm", papers$affiliation)
-papers$affiliation = gsub("Universitat de Valencia, Facultad de Medicina y Odontologia", "University of Valencia", papers$affiliation)
+papers$affiliation = gsub("Universitat de Valencia, Facultad de Medicina y Odontologia|Universitat de Valencia", "University of Valencia", papers$affiliation)
 papers$affiliation = gsub("Universidad de Valladolid|Hospital Universitario de Valladolid|Universidad de Valladolid, Facultad de Medicina" , "University of Valladolid", papers$affiliation)
 papers$affiliation = gsub("Universita degli Studi di Verona|Universita degli Studi di Verona, Facolta di Medicina e Chirurgia" , "University of Verona", papers$affiliation)
 papers$affiliation = gsub("Universitat Wien", "University of Vienna", papers$affiliation)
@@ -256,10 +262,12 @@ papers$affiliation = gsub('Warwick Medical School|University of Warwick Medical 
 papers$affiliation = gsub("Berlin Institute of Health","Charite - Universitatsmedizin Berlin", papers$affiliation)
 papers$affiliation = gsub("York Health Economics Consortium", "University of York", papers$affiliation)
 papers$affiliation = gsub("Beijing Tsinghua Changgeng Hospital", "Tsinghua University", papers$affiliation)
+papers$affiliation = gsub('GlaxoSmithKline, USA|^c GSK$|^GSK$|GSK Vaccines|GSK Vaccines Institute for Global Health|GSK Nigeria|Present address: GSK', 'GlaxoSmithKline', papers$affiliation)
+papers$affiliation = gsub('^Mayo$', 'Mayo Clinic', papers$affiliation)
 # some changes made for Times Higher Ed:
 papers$affiliation = gsub("Technische Universitét Ménchen|Technische Universität München", "Technical University of Munich", papers$affiliation)
 papers$affiliation = gsub("Hong Kong University-Shenzhen Hospital|University of Hong Kong Li Ka Shing", 'University of Hong Kong', papers$affiliation)
-papers$affiliation = gsub("University of New South Wales (UNSW) Australia|University of New South Wales, Rural Clinical Schoo", "University of New South Wales", papers$affiliation)
+papers$affiliation = gsub("University of New South Wales (UNSW) Australia|University of New South Wales, Rural Clinical School", "University of New South Wales", papers$affiliation)
 papers$affiliation = gsub("Dartmouth-Hitchcock Medical Center|Dartmouth Institute for Health Policy and Clinical Practice|Geisel School of Medicine at Dartmouth|Tuck School of Business at Dartmouth", "Dartmouth College", papers$affiliation)
 papers$affiliation = gsub("Universitat Mannheim|Universitatsklinikum Mannheim", 'University of Mannheim', papers$affiliation)
 papers$affiliation = gsub('Rheinisch-Westfalische Technische Hochschule Aachen|Medizinische Fakultat und Universitats Klinikum Aachen', "RWTH Aachen University", papers$affiliation)
@@ -294,8 +302,15 @@ index = is.na(papers$University) == F
 papers$affiliation[index] = papers$University[index]
 
 ## blank some daft affiliations
-index = papers$affiliation %in% unique( c('London', 'UK', 'Prevention', 'Teaching', 'Faculty of Medicine', 'Cardiology', 'Cardiovascular Diseases', 'Research','Research Center', 'Epidemiology', 'Central', 'Office 2.47', 'Office 2.49', 'Central', 'Director', 'Medical Centre', 'San Francisco', 'Departments of Epidemiology',' Section of Neurosurgery', 'School of Dentistry', 'Private Dental Clinic', 'Private Clinic', 'University Medicine', 'School of Pharmacy', 'Engineering School',
+index = papers$affiliation %in% unique( c('Research Unit','Research and Development Unit','Research and Development',
+                                          'Patient Research Partner','Operational Research Unit',
+                                          'Ministry of Health','Medical Affairs Department',
+                                          'Independent Researcher','Independent Consultant','Division of Cardiology',
+                                          'Division of Internal Medicine','Division of Cardiovascular Surgery',
+                                          'College of Medicine','College of Nursing'
+                                          'Chicago','London', 'UK', 'Prevention', 'Teaching', 'Faculty of Medicine', 'Cardiology', 'Cardiovascular Diseases', 'Research','Research Center', 'Epidemiology', 'Central', 'Office 2.47', 'Office 2.49', 'Central', 'Director', 'Medical Centre', 'San Francisco', 'Departments of Epidemiology',' Section of Neurosurgery', 'School of Dentistry', 'Private Dental Clinic', 'Private Clinic', 'University Medicine', 'School of Pharmacy', 'Engineering School',
                                           'School of Pharmacy','School of Psychology','School of Surgery','School of Nursing', "School of Public Health", "School of Clinical Sciences", "School of Medicine", "School of Food Science and Nutrition", "Medical School", 
+                                          'Faculty of Medical and Health Sciences, School of Population Health',
                                           'Faculty of Health', 'Faculty of Pharmacy',
                                           'Faculty of Sciences', 'Faculty of Health Sciences',
                                           "Faculty of Pharmacy and Pharmaceutical Sciences", "Faculty of Health, Medicine, Nursing and Behavioural Science",
@@ -309,7 +324,7 @@ index = papers$affiliation %in% unique( c('London', 'UK', 'Prevention', 'Teachin
                                           'Private Practice in Athens',
                                           'Private Practice in Implant Prosthodontics',
                                           "Information Specialist (consultant)" , "Information Specialist Consultant",
-                                          'Psychiatrist in Private Practice', 'Nephrology'))
+                                          'Psychiatrist in Private Practice', 'Nephrology', 'Hull York'))
 # DDS
 # office affliations from https://www.idhjournal.com.au/article/S2468-0451(16)30018-9/pdf
 papers$affiliation[index] = NA
@@ -443,8 +458,8 @@ to.combine[[93]] =c("Biomedical Research Centre in Mental Health Network (CIBERS
 to.combine[[94]] =c("University of Newcastle upon Tyne,", "Newcastle University, United Kingdom", "University of Newcastle") # comma in first is sic              
 to.combine[[95]] =c('Academic Medical Centre, University of Amsterdam','University of Amsterdam')
 to.combine[[96]] =c("Mayo Clinic Scottsdale-Phoenix, Arizona", "Mayo Clinic Hospital", "Mayo Graduate School", "Mayo Clinic in Jacksonville, Florida", "Mayo Clinic")
-to.combine[[97]] =c("UNSW, National Drug and Alcohol Research Centre", "UNSW Australia", "University of New South Wales (UNSW) Australia", "University of New South Wales") # would prefer 'Australia' tag, but kept with Leiden
-to.combine[[98]] =c('University of Ottawa Heart Institute', 'University of Ottawa, Canada') 
+to.combine[[97]] =c("UNSW, National Drug and Alcohol Research Centre", "UNSW, National Drug & Alcohol Research Centre", "UNSW Australia", "University of New South Wales (UNSW) Australia", "University of New South Wales") # would prefer 'Australia' tag, but kept with Leiden
+to.combine[[98]] =c('University of Ottawa Heart Institute', 'University of Ottawa, Canada', 'University of Ottawa') 
 to.combine[[99]] =c("Columbia University Division of Cardiology", "Columbia University in the City of New York", "Columbia University, College of Physicians and Surgeons", "Columbia University Medical Center", "Columbia University Division of Cardiac Surgery", "Columbia University College of Dental Medicine", "Columbia University")
 to.combine[[100]] =c("Tel Aviv University, Sackler", "Tel Aviv University")
 to.combine[[101]] =c('Hofstra North Shore-Long Island Jewish','North Shore-Long Island Jewish Health System')
@@ -681,10 +696,16 @@ to.combine[[330]] =c("Samsung Medical Center, Sungkyunkwan University", "Sungkyu
 to.combine[[331]] =c("Royal College of Surgeons of Ireland Affiliated Hospital", "Royal College of Sur. in Ireland", "Royal College of Surgeons in Ireland")
 to.combine[[332]] =c("Luxembourg Institute of Socio-Economic Research (LISER)", "Luxembourg Institute of Socio-Economic Research")
 to.combine[[333]] =c("George Institute", "George Institute for Global Health")
-to.combine[[333]] =c("St George's Hospital, London", "St George's University of London")
-
+to.combine[[334]] =c("St George's Hospital, London", "St George's University of London")
+to.combine[[335]] =c("NYU Langone Medical Center", "NYU Lutheran System", "NYU Hospital for Joint Diseases","NYU College of Dentistry", "NYU", "NYU Steinhardt School of Culture, Education, and Human Development", "New York University")
+to.combine[[336]] =c("VCU School of Dentistry", "VCU", "Virginia Commonwealth University")
+to.combine[[337]] =c("^CASE$", "Case Western Reserve University")
+to.combine[[338]] =c('Radboud University Nijmegen','Radboud University')
+to.combine[[339]] =c("Universidade Federal do Ceará", "University of Ceara", "Federal University of Ceará")
+to.combine[[340]] =c("Florey Institute of Neuroscience and Mental Health", 'University of Melbourne')
+to.combine[[341]] =c("VU University Medical Center", 'VU University Amsterdam')
 # switch back wrongly removed suffix
-to.combine[[333]] =c('^Baylor$','Baylor College of Medicine') # 
+to.combine[[342]] =c('^Baylor$','Baylor College of Medicine') # 
 
 # run the combines/changes
 for (k in 1:length(to.combine)){
@@ -705,7 +726,44 @@ papers$affiliation[index] = 'University of Pittsburgh'
 # fix those ending with a comma
 papers$affiliation = gsub(',$', '', papers$affiliation)
 
+# fix wrong countries
+papers$country[ grep('Emory', papers$affiliation)] = 'United States' # Some Georgia!
+papers$country[ grep('University College London', papers$affiliation)] = 'United Kingdom'
+papers$country[ grep('University of Warwick', papers$affiliation)] = 'United Kingdom' # one USA
+papers$country[ grep('Yale University', papers$affiliation)] = 'United States' # one USA
+papers$country[ grep('Western Michigan University', papers$affiliation)] = 'United States' # one Canada
+papers$country[ grep('Weill Cornell Medical College', papers$affiliation)] = 'United States' # some Qatar
+papers$country[ grep('University of Valparaíso', papers$affiliation)] = 'Chile' # one USA
+papers$country[ grep('University of Strathclyde', papers$affiliation)] = 'United Kingdom' # some France
+papers$country[ grep('University of St Andrews', papers$affiliation)] = 'United Kingdom' # one Australia
+papers$country[ grep('University of Queensland', papers$affiliation)] = 'Australia' # three UK
+papers$country[ grep('University of Oxford', papers$affiliation)] = 'United Kingdom' # two Viet Nam
+papers$country[ grep('University of Nottingham', papers$affiliation)] = 'United Kingdom' # two Malaysia
+papers$country[ grep('University of North Carolina, Chapel Hill', papers$affiliation)] = 'United States' # three China
+papers$country[ grep('University of Exeter', papers$affiliation)] = 'United Kingdom' # one Netherlands
+papers$country[ grep('University of East Anglia', papers$affiliation)] = 'United Kingdom' # one USA
+papers$country[ grep('University of Auckland', papers$affiliation)] = 'New Zealand' # one USA
+papers$country[ grep('University of British Columbia', papers$affiliation)] = 'Canada' # one Colombia
+papers$country[ grep('Université de Montréal', papers$affiliation)] = 'Canada' # one Colombia
+papers$country[ grep('University of Alabama, Birmingham', papers$affiliation)] = 'United States' # one UK
+papers$country[ grep("Federal University of Ceará", papers$affiliation)] = 'Brazil' # one USA
+papers$country[ grep("Paracelsus Medical University", papers$affiliation)] = 'Germany' # one Australia
+papers$country[ grep("Northeastern University China", papers$affiliation)] = 'China' # lots of USA
+papers$country[ grep("Monash University", papers$affiliation)] = 'Australia' # lots of Malaysia
+papers$country[ grep("Johns Hopkins University", papers$affiliation)] = 'United States' # one Singapore
+papers$country[ grep("Kinshasa University", papers$affiliation)] = 'Democratic Republic of the Congo' # one Congo
+papers$country[ grep("London School of Hygiene & Tropical Medicine", papers$affiliation)] = 'United Kingdom' # one Germany
+papers$country[ grep("Institut Pasteur, Paris", papers$affiliation)] = 'France' # all sorts
+papers$country[ grep("Griffith University", papers$affiliation)] = 'Australia' # one UAE
+papers$country[ grep("Harvard University", papers$affiliation)] = 'United States' # one Botswana
+papers$country[ grep("Dartmouth College", papers$affiliation)] = 'United States' # one Lebanon
+papers$country[ grep("Chulalongkorn University", papers$affiliation)] = 'Thailand' # one USA
+
+index = papers$country == 'Australia' & papers$affiliation == 'University of Newcastle' & is.na(papers$affiliation)==F
+papers$affiliation[index] = 'University of Newcastle, Australia' # Be consistent with country suffix
+
 # save
+papers = subset(papers, select=c("doi","affiliation","country","year","Region","University",'weight'))
 save(papers, pubmed.frame, date.searched, file='Papers.for.Shiny.RData') # 
 
 # check: look for repeats of university names
@@ -736,3 +794,8 @@ all[grep('Universidad', all)] # translation
 leiden = read_excel('CWTS Leiden Ranking 2017.xlsx', sheet='Results')
 leiden.places = unique(leiden$University)
 leiden.places[leiden.places%in%papers$affiliation==F]
+
+# Check for affiliations in more than two countries
+tab = with(papers, table(country, affiliation))
+r = colSums(tab>0)
+r[r>1]
