@@ -1,5 +1,5 @@
-# league.tables
-Creating an institutional league table based on a responsible research metric.
+# university league tables
+Creating an international university league table based on a good research practice.
 
 Work in progress.
 
