@@ -1,0 +1,836 @@
+---
+title: "Can we use EQUATOR citations to make a league table of good research practice?"
+author: "Adrian Barnett & David Moher"
+date: "`r format(Sys.time(), '%d %B %Y')`"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning=FALSE, message=FALSE, comment='', dpi=400)
+options(width=200)
+options(scipen=999) # no scientific numbers
+library(R2WinBUGS) # for clustering
+library(mclust, quietly=TRUE) # for alternative clustering
+library(dplyr)
+library(readxl)
+library(BlandAltmanLeh)
+library(tables)
+library(doBy)
+library(reshape2)
+library(ggplot2)
+cbbPalette <- c("#000000", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
+library(gridExtra) # for side-by-side plots
+library(pander)
+panderOptions('table.emphasize.rownames', FALSE)
+panderOptions('keep.trailing.zeros', TRUE)
+panderOptions('table.split.table', Inf)
+panderOptions('table.split.cells', Inf)
+panderOptions('big.mark',',')
+load('THE.RData') # from THE.data.R
+load('Papers.for.Shiny.RData') # from data.management.R
+load('pubmed.frame.RData') # 
+# function for mode
+Mode <- function(x) {
+  ux <- unique(x)
+  ux[which.max(tabulate(match(x, ux)))]
+}
+# function to round with trailing zeros
+roundz  = function(x, digits=0){formatC( round( x, digits ), format='f', digits=digits)}
+```
+
+Our overall aim is to examine if international league tables of institutions could be updated to include a metric of good research practice, and we consider citing an EQUATOR guideline to indicate good practice. We used the CONSORT (randomised trials), PRISMA (systematic reviews) and STROBE (observational) checklists.
+
+We used `r nrow(pubmed.frame)` papers from the journals below.
+
+##### CONSORT
+
+```{r consort.papers, results='asis'}
+# bullet list
+pubmed.frame$title = as.character(pubmed.frame$title)
+pubmed.frame$journal = as.character(pubmed.frame$journal)
+pubmed.frame$journal = gsub('=',':', pubmed.frame$journal) # replace tricky character
+to.list = subset(pubmed.frame, type=='CONSORT')
+for (k in 1:nrow(to.list)){
+  cat('* ', to.list$title[k], ', _', to.list$journal[k], '_ (', to.list$year[k], ')\n', sep='')
+}
+# output to latex
+zz = file('latex.paper.list.txt','w')
+cat('CONSORT\n\\begin{itemize}\n', file=zz)
+for (k in 1:nrow(to.list)){
+  cat('\\item ', to.list$title[k], ', \\textit{', to.list$journal[k], '} (', to.list$year[k], '), PMID=', to.list$pmid[k],'\n', sep='', file=zz)
+}
+cat('\\end{itemize}\n', file=zz)
+close(zz)
+```
+
+##### PRISMA
+
+```{r primsa.papers, results='asis'}
+# bullet list
+to.list = subset(pubmed.frame, type=='PRISMA')
+for (k in 1:nrow(to.list)){
+  cat('* ', to.list$title[k], ', _', to.list$journal[k], '_ (', to.list$year[k], ')\n', sep='')
+}
+# output to latex
+zz = file('latex.paper.list.txt','a') # append
+cat('\nPRISMA\n\\begin{itemize}\n', file=zz)
+for (k in 1:nrow(to.list)){
+  cat('\\item ', to.list$title[k], ', \\textit{', to.list$journal[k], '} (', to.list$year[k], '), PMID=', to.list$pmid[k],'\n', sep='', file=zz)
+}
+cat('\\end{itemize}\n', file=zz)
+close(zz)
+```
+
+##### STROBE
+
+```{r strobe.papers, results='asis'}
+# bullet list
+to.list = subset(pubmed.frame, type=='STROBE')
+for (k in 1:nrow(to.list)){
+  cat('* ', to.list$title[k], ', _', to.list$journal[k], '_ (', to.list$year[k], ')\n', sep='')
+}
+# output to latex
+zz = file('latex.paper.list.txt','a') # append
+cat('\nSTROBE\n\\begin{itemize}\n', file=zz)
+for (k in 1:nrow(to.list)){
+  cat('\\item ', to.list$title[k], ', \\textit{', to.list$journal[k], '} (', to.list$year[k], '), PMID=', to.list$pmid[k],'\n', sep='', file=zz)
+}
+cat('\\end{itemize}\n', file=zz)
+close(zz)
+```
+
+#### Inclusion criteria
+
+The inclusion criteria for our citing papers were:
+
+* Articles or Reviews, in order to remove editorials, commentaries, corrections, etc.
+* Published in 2016 or 2017 because league tables are based on annual data
+
+To only include papers that adhered to the first item on the PRIMSA and CONOSRT checklists, which is to include the study design in the title, we only included:
+
+* For PRISMA papers: "systematic search", "systematic review", "systematic literature review", "scoping review", "meta-analyses" or "meta-analysis" in the title (including versions without hyphens)
+* For CONSORT papers: "randomised trial", "randomized trial" or "RCT".
+
+The *Scopus* citation data were searched on `r format(date.searched, '%d-%b-%Y')`.
+
+We use a fractional count of citations. So, for example, if a paper had two authors from universities Y and Z, then each university would get a 0.5 weight.
+
+## Summary stats
+
+```{r stats, include=F}
+n.res = nrow(papers)
+n.papers = length(unique(papers$doi))
+```
+
+There were `r n.papers` papers giving a total of `r n.res` author affiliations that could be counted. The average number of affiliations per paper was `r round(10*n.res/n.papers)/10`.
+
+### Missing data
+
+A small number of results were missing the affiliation and/or the country.
+These missing results were excluded before calculating the statistics.
+
+##### Missing affiliation
+
+```{r missing.affiliation}
+papers$Missing = is.na(papers$affiliation)
+tabular(Missing + 1 ~ (Factor(year)+1)*(n=1 + Percent('col')), data=papers)
+```
+
+##### Missing country
+
+```{r missing.country}
+papers$Missing = is.na(papers$country)
+tabular(Missing + 1 ~ (Factor(year)+1)*(n=1 + Percent('col')), data=papers)
+```
+
+##### Missing affiliation by country (rows ordered by number missing)
+
+```{r missing.affiliation.by.country}
+papers$Missing = is.na(papers$affiliation)
+papers$country[is.na(papers$country)] = 'Missing' # need to add missing country for this analysis
+tab = with(papers, table(country, Missing))
+# calculate percent and order
+mtab = as.matrix(tab)
+perc = 100* (mtab[,2] / (mtab[,1]+mtab[,2]))
+mtab = cbind(mtab, perc)
+mtab = mtab[order(-mtab[,2]),] # order by number missing
+# sum all rows beyond top ten
+top.ten = mtab[1:10, ]
+Other = mtab[11:nrow(mtab),]
+Other = colSums(Other)
+Other[3] = 100* (Other[2] / (Other[1]+Other[2]))
+# concatenate
+table = rbind(top.ten, Other)
+table = rbind(table, colSums(table))
+# total
+colnames(table) = c('Complete','Missing','Percent missing')
+pander(table, style='simple', emphasize.rownames=F, justify=c('right','left','left','left'), digits=0)
+# output to latex 
+ltab = data.frame(table) 
+ltab = dplyr::mutate(ltab, Country=row.names(ltab),
+                     Percent.missing = round(Percent.missing, 1)) %>%
+  select(Country, Complete, Missing, Percent.missing)
+zz = file('latex.tab.missing.txt','w')
+cat(Hmisc::latexTabular(ltab), file=zz)
+close(zz)
+```
+
+Here we examine whether some countries had more missing affilations than others. This could indicate a disadvantage for some countries.
+
+
+## Regions by year (excluding missing regions)
+
+The tables show the weighted counts by regions.
+It excludes missing regions, but includes data where the region was not missing but the affiliation was missing.
+
+```{r regions}
+region.stats <- group_by(papers, year, Region) %>%
+    filter(is.na(Region)==F) %>% # remove missing
+  summarise(wsum = sum(weight)) %>% # make weighted count
+  arrange(year, -wsum) %>%
+  mutate(Region=as.character(Region), rank = 1:n()) %>%
+  filter(rank<=10) %>% # top ten
+  select(-rank) %>% 
+  rename('Year'='year', 'Weighted sum'='wsum') %>%
+  ungroup()
+```
+
+##### 2016
+
+```{r regions.2016}
+to.table = dplyr::filter(region.stats, Year==2016) %>% 
+  dplyr::select(-Year)
+pander(to.table, style='simple', emphasize.rownames=FALSE, justify=c('left','left'), digits=0)
+```
+
+##### 2017
+
+```{r regions.2017}
+to.table = dplyr::filter(region.stats, Year==2017) %>% 
+  dplyr::select(-Year)
+pander(to.table, style='simple', emphasize.rownames=FALSE, justify=c('left','left'), digits=0)
+```
+
+## Top ten countries by year (excluding missing countries)
+
+The tables show the weighted counts by countries.
+It excludes data where the country was missing, but includes data where the country was not missing but the affiliation was missing.
+
+```{r countries}
+country.stats <- group_by(papers, year, country) %>%
+    filter(is.na(country)==F) %>% # remove missing
+  summarise(wsum = sum(weight)) %>% # make weighted count
+  arrange(year, -wsum) %>%
+  mutate(rank = 1:n()) %>%
+  filter(rank<=10) %>% # top ten
+  select(-rank) %>% 
+  rename('Year'='year', 'Country'='country','Weighted sum'='wsum') %>%
+  ungroup()
+```
+
+##### 2016
+
+```{r countries.2016}
+to.table = dplyr::filter(country.stats, Year==2016) %>% 
+  dplyr::select(-Year)
+pander(to.table, style='simple', emphasize.rownames=FALSE, justify=c('left','left'), digits=c(0,3))
+```
+
+##### 2017
+
+```{r countries.2017}
+to.table = dplyr::filter(country.stats, Year==2017) %>% 
+  dplyr::select(-Year)
+pander(to.table, style='simple', emphasize.rownames=F, justify=c('left','left'), digits=c(0,3))
+```
+
+```{r region.country.latex, include=FALSE}
+# don't need regions/countries in second year, because only change was Denmark (2016) and Spain (2017)
+# a) regions
+null = data.frame(empty=rep('', 10)) # For gaps in latex columns
+for.latex = bind_cols(filter(region.stats, Year==2016) %>% select(-Year) %>% mutate(`Weighted sum` = round(`Weighted sum`)),
+                      filter(region.stats, Year==2017) %>% select(-Year, -Region) %>% mutate(`Weighted sum` = round(`Weighted sum`)))
+# output to latex
+zz = file('latex.tab.region.txt','w')
+cat(Hmisc::latexTabular(for.latex), file=zz)
+close(zz)
+# b) countries
+for.latex = bind_cols(filter(country.stats, Year==2016) %>% select(-Year) %>% mutate(`Weighted sum` = round(`Weighted sum`)),
+                      filter(country.stats, Year==2017) %>% select(-Year, -Country) %>% mutate(`Weighted sum` = round(`Weighted sum`)))
+# output to latex
+zz = file('latex.tab.country.txt','w')
+cat(Hmisc::latexTabular(for.latex), file=zz)
+close(zz)
+```
+
+## Top 50 universities by year (including missing affiliation data)
+
+```{r affiliations}
+papers$affiliation[is.na(papers$affiliation)] = 'Missing' # make missing into a group
+# Weighted count per year
+istats <- group_by(papers, year, affiliation) %>%
+  summarise(wsum = sum(weight), n=n()) %>%
+  arrange(year, -wsum) %>% # sort by year and score
+  mutate(rank = 1:n() ) %>%
+  ungroup() %>% # needed for next line
+  mutate(affiliation = as.character(affiliation))
+```
+
+##### 2016
+
+```{r affiliations.2016}
+to.table = filter(istats, year==2016) %>% 
+  filter(rank <= 50) %>% # top fifty
+  select(rank, affiliation, n, wsum)
+pander(to.table, style='simple', emphasize.rownames=F, justify=c('right','left','left','left'), digits=c(0,0,0,3))
+```
+
+##### 2017
+
+```{r affiliations.2017}
+to.table = filter(istats, year==2017) %>% 
+  filter(rank <= 50) %>% # top fifty
+  select(rank, affiliation, n, wsum)
+pander(to.table, style='simple', emphasize.rownames=F, justify=c('right','left','left','left'), digits=c(0,0,0,3))
+```
+
+##### Bland-Altman plot of the university rank
+
+The plot looks at institution ranking only for those in the top 200.
+
+```{r BA.rank.uni.stats, include=FALSE}
+bstats = group_by(istats, year) %>%
+  mutate(rank = 1:n()) %>%
+  filter(rank <=200) # top 200 only
+stats2016 = subset(bstats, year==2016)
+stats2017 = subset(bstats, year==2017)
+wide = merge(stats2016, stats2017, by='affiliation')
+bstats = bland.altman.plot(rank(-wide$wsum.x), rank(-wide$wsum.y), main="", xlab='', ylab="", silent=F, graph.sys = 'base') # just get the stats
+# quick check of calculations
+wide = mutate(wide, rank.x = rank(-wide$wsum.x),
+              rank.y = rank(-wide$wsum.y),
+              diff = rank.x - rank.y,
+              mean = (rank.x + rank.y)/2)
+```
+
+```{r BA.rank.uni.plot}
+bplot.uni = bland.altman.plot(rank(-wide$wsum.x), rank(-wide$wsum.y), main="", xlab='', ylab="", silent=T, graph.sys = 'ggplot2')
+bplot.uni = bplot.uni + theme_bw() + theme(plot.margin = margin(1, 1, 1, 1, "mm")) +
+  xlab("Mean rank") +
+  ylab('Difference in rank')
+bplot.uni
+```
+
+There were `r nrow(wide)` universities in the top 200 in both years.
+The plot includes the limits of agreement which are `r round(bstats$lines[1])` to `r round(bstats$lines[3])`.
+
+##### Examine those insitutions with a very large change
+
+```{r large.change}
+lchange = mutate(wide, diff = rank.x - rank.y) %>%
+  filter(diff > 100 | diff < -100) %>%
+  select(-year.x, -year.y)
+pander(lchange, style='simple', digits=0)
+```
+
+The table shows those institutions that had a change in rank of over 100.
+The first three columns are for 2016 and the next three for 2017.
+
+### Score distributions for universities
+
+```{r score.dist}
+dplot = ggplot(data=istats, aes(x=wsum))+
+  geom_histogram(fill='skyblue')+
+  theme_bw()+
+  ylab('Frequency')+
+  xlab('Score')+
+  facet_wrap(~year, ncol=1)
+dplot
+postscript('Distributions.eps', width=6, height=5, horiz=F)
+print(dplot)
+invisible(dev.off())
+```
+
+These histrograms use `r format(nrow(istats),big.mark=',')` scores across 2016 and 2017.
+
+##### Boxplot of scores by year
+
+The y-axis is on a log base-2 scale.
+
+```{r score.box}
+# log base 2
+breaks = c(0.1, 1, 10, 40, 100)
+lbreaks = log2(breaks)
+bplot = ggplot(data=istats, aes(x=factor(year), y=log2(wsum)))+
+  geom_boxplot(fill='skyblue')+
+  theme_bw()+
+  scale_y_continuous(breaks=lbreaks, labels=breaks)+
+  xlab('Year')+
+  ylab('Score')+
+  theme(panel.grid.minor = element_blank())
+bplot
+postscript('Boxplots.eps', width=6, height=5, horiz=F)
+print(bplot)
+invisible(dev.off())
+```
+
+These boxplots use `r format(nrow(istats),big.mark=',')` scores across 2016 and 2017.
+
+
+## Times Higher Education
+
+Here we examine the Times Higher Education (THE) data for 2016 and 2017.
+The league table is called the "THE World University Rankings".
+
+##### Bland-Altman plot of the institute rank for THE World University Rankings data
+
+The plot looks at institution ranking only for those in the top 200.
+A higher rank indicates higher prestige.
+There is a clear "funnel" to the plot, with less movement at higher ranks.
+
+```{r BA.rank.THE, include=FALSE}
+THE.stats = group_by(THE, year) %>%
+                mutate(rank.num = rank(-research)) %>% # use research score
+                filter(rank.num <= 200) # top 200
+wide = dcast(inst ~ year, value.var='rank.num', data=THE.stats)
+wide = wide[complete.cases(wide), ] # remove missing
+bstats = bland.altman.plot(wide$`2016`, wide$`2017`, main="", xlab='', ylab="", silent=F, graph.sys = 'base') # just get the stats
+```
+
+```{r BA.rank.THE.plot}
+bplot.THE = bland.altman.plot(wide$`2016`, wide$`2017`, main="", xlab='', ylab="", silent=T, graph.sys = 'ggplot2')
+bplot.THE = bplot.THE + theme_bw() + theme(plot.margin = margin(1, 1, 1, 1, "mm")) +
+  xlab("Mean rank") +
+  ylab('Difference in rank')
+bplot.THE
+```
+
+There were `r nrow(wide)` universities in the top 200 in both years.
+The plot includes the limits of agreement which are `r round(bstats$lines[1])` to `r round(bstats$lines[3])`.
+
+```{r BA.plot.both, include=FALSE}
+# Add THE and EQUATOR Bland-Altman plots to one graph
+bplot.uni = bplot.uni + ggtitle('Good Research Practice rankings') + scale_x_continuous(limits=c(0,200)) + scale_y_continuous(limits=c(-110,110)) # consistent scales
+bplot.THE = bplot.THE + ggtitle('THE World University rankings') + scale_x_continuous(limits=c(0,200)) + scale_y_continuous(limits=c(-110,110)) + ylab('') # consistent scales
+postscript('BAplots.eps', width=7.5, height=5, horiz=F)
+grid.arrange(bplot.uni, bplot.THE, ncol=2)
+invisible(dev.off())
+```
+
+
+## Bootstrap to get uncertainty in university ranks
+
+Includes 'missing' affiliation as a category.
+The results are sorted according to the probability of being in the top 10.
+
+```{r boostrap}
+n.boot = 1000 # number of bootstrap replications (should be 1000)
+set.seed(12345)
+if(length(dir(pattern='Boostrap.results.RData')) == 0){ # only run if results file does not already exist
+  ### 2016
+  to.boot = dplyr::select(papers, affiliation, weight, year)  # reduce number of columns
+  to.boot = subset(to.boot, year==2016) 
+  bstats = NULL
+  for (k in 1:n.boot){
+    b = sample(1:nrow(to.boot), size=nrow(to.boot), replace=T)
+    boot = to.boot[b, ]
+    boot_by_year <- group_by(boot, year, affiliation)
+    # make weighted count by year
+    boot.stats = summarise(boot_by_year, wsum = sum(weight)) %>%
+      arrange(year, -wsum)
+    boot.stats$rank = 1:nrow(boot.stats) # 
+    bstats = rbind(bstats, boot.stats) 
+  }
+  bstats <- group_by(bstats, affiliation)
+  bstats$top10 = bstats$rank <= 10 #  pr top 10 and top 100
+  bstats$top100 = bstats$rank <= 100
+  intervals.2016 = summarise(bstats, 
+                        p10 = mean(top10), p100 = mean(top100),
+                        slower=quantile(wsum, 0.025), supper=quantile(wsum, 0.975),
+                        rmedian=quantile(rank, 0.5), rlower=quantile(rank, 0.025), rupper=quantile(rank, 0.975)) %>%
+    arrange(rmedian, -p10)
+  stats2016.top20 = intervals.2016[1:20, c('affiliation','p10','rmedian','rlower','rupper')] # top 20
+  names(stats2016.top20) = c('Affiliation', 'Pr top 10', 'Median rank', 'Lower rank', 'Upper rank')
+
+  ### 2017 (repeat, bad coding by me)
+  to.boot = dplyr::select(papers, affiliation, weight, year)  # reduce number of columns
+  to.boot = subset(to.boot, year==2017) 
+  bstats = NULL
+  for (k in 1:n.boot){
+    b = sample(1:nrow(to.boot), size=nrow(to.boot), replace=T)
+    boot = to.boot[b, ]
+    boot_by_year <- group_by(boot, year, affiliation)
+    # make weighted count by year
+    boot.stats = summarise(boot_by_year, wsum = sum(weight)) %>%
+      arrange(year, -wsum)
+    boot.stats$rank = 1:nrow(boot.stats) # 
+    bstats = rbind(bstats, boot.stats) 
+  }
+  bstats <- group_by(bstats, affiliation)
+  bstats$top10 = bstats$rank <= 10 #  pr top 10 and top 100
+  bstats$top100 = bstats$rank <= 100
+  intervals.2017 = summarise(bstats, 
+                        p10 = mean(top10), p100 = mean(top100),
+                        slower=quantile(wsum, 0.025), supper=quantile(wsum, 0.975),
+                        rmedian=quantile(rank, 0.5), rlower=quantile(rank, 0.025), rupper=quantile(rank, 0.975)) %>%
+    arrange(rmedian, -p10)
+  stats2017.top20 = intervals.2017[1:20, c('affiliation','p10','rmedian','rlower','rupper')] # top 20
+  names(stats2017.top20) = c('Affiliation', 'Pr top 10', 'Median rank', 'Lower rank', 'Upper rank')
+  
+  # save
+  save(stats2016.top20, stats2017.top20, intervals.2016, intervals.2017, file='Boostrap.results.RData')
+}  
+if(length(dir(pattern='Boostrap.results.RData')) > 0){
+  load('Boostrap.results.RData') # load existing results
+}
+pander(stats2016.top20, style='simple', emphasize.rownames=F, justify=c('right','left','left','left','left'), digits=c(0,2,0,0,0))
+```
+
+#### Plot of uncertainty in rank by median rank for 2017 
+
+```{r uncertainty}
+intervals.2017 = dplyr::mutate(intervals.2017, rank.diff = rupper - rlower)
+pplot = ggplot(data=intervals.2017, aes(x=rmedian, y=rank.diff))+
+  geom_point()+
+  xlab('Median rank')+
+  ylab('Range in ranks')+
+  theme_bw()
+pplot
+```
+
+# Bayesian mixture model to estimate clusters
+
+
+```{r bayes.cluster}
+# Bayesian clustering model to give league table groups rather than ranks
+# Gaussian mixture model
+# use istats data from `affiliations` chunk
+# use both years, allows us to examine change; ignore within-university correlation
+# tried changing sigma2 to sigma2[class[i]]; results were not as useful
+
+# only run if not already saved
+if(length(dir(pattern='bugs.cluster.results.RData')) == 0){ # only run if results file does not already exist
+  bugsfile = 'cluster.bugs.txt'
+  bugs = file(bugsfile, 'w')
+  cat('model{
+    for (i in 1:N){
+       wsum[i] ~ dnorm(mu[i], tau[i])
+       tau[i] <- n[i]/sigma2 # 
+       mu[i] <- cluster[class[i]] # mean dependent on class membership
+       class[i] ~ dcat(P[1:N.clust]) # class membership	
+    }
+# minimum cluster size 
+    for (k in 1:N.clust){
+      P.dash[k] ~ dunif(1, 24.75) # upper limit is 99/4
+      P[k] <- P.dash[k] / P.total
+    }
+    P.total <- sum(P.dash[1:N.clust])
+# ordered values for mean
+    c[1] ~ dexp(1) 
+    cluster[1] <- 2 + c[1] # because of two minimum
+    for (k in 2:N.clust){
+       c[k] ~ dexp(1)
+       cluster[k] <- c[k] + cluster[k-1] # always increase
+    }
+    sigma2 ~ dunif(0.01, 1000)
+}\n', file=bugs)
+  close(bugs)
+  
+  # Just 2 or above
+  for.cluster = dplyr::filter(istats, wsum >= 2)
+  # Pre-specify cluster size of 5
+  N.clust = 5
+  bdata = list(N=nrow(for.cluster), N.clust=N.clust, wsum=for.cluster$wsum, n=for.cluster$n) #
+  inits = list(list(sigma2=1, c=rep(1,5), P.dash=rep(1, 5), class=rep(1, nrow(for.cluster))))
+  parms = c('cluster','class','P','sigma2')
+  bugs.results.detail =  bugs(data=bdata, inits=inits, parameters=parms, model.file=bugsfile,
+                              n.chains=1, n.iter=5000, debug=TRUE, DIC=FALSE,
+                              bugs.directory="c:/Program Files/WinBUGS14")
+  # save
+  for.cluster$cluster.member = as.numeric(bugs.results.detail$median$class) # median group
+  save(bugs.results.detail, for.cluster, file='bugs.cluster.results.RData')
+}
+if(length(dir(pattern='bugs.cluster.results.RData')) > 0){
+  load('bugs.cluster.results.RData') # load existing results
+}
+# numbers for text below.
+above = sum(istats$wsum>=2)
+percent.above = round(100 * above / nrow(istats))
+```
+
+Here we only examine universities that had a score of two or more, which was `r above` universities, `r percent.above`% of the total sample. 
+The model includes "missing" as a university.
+We pre-specify the number of clusters as five, and do not try to find a more statistically optimal number as both authors agreed on this number of groups before any modelling.
+
+### Cluster means and 95% credible intervals
+
+```{r plot.cluster.means}
+cluster.means = bugs.results.detail$summary[grep('cluster', row.names(bugs.results.detail$summary)), c(1,3,7)]
+cluster.means = data.frame(cluster.means) %>%
+  rename('lower'="X2.5.", 'upper'="X97.5.") %>%
+  mutate(cluster = 1:n())
+mplot = ggplot(data=cluster.means, aes(x=mean, xmin=lower, xmax=upper, y=cluster))+
+  geom_point(size=2)+
+  geom_errorbarh(height=0, size=1.1)+
+  theme_bw()+
+  ylab('Cluster')+
+  xlab('Score')+
+  theme(panel.grid.minor = element_blank())
+mplot
+```
+
+The 95% credible intervals for the means are narrow.
+
+### Table of probabilities and cluster means
+
+```{r cluster.table}
+P.means = bugs.results.detail$summary[grep('P', row.names(bugs.results.detail$summary)), c(1,3,7)]
+P.means = data.frame(P.means) %>%
+  rename('lower'="X2.5.", 'upper'="X97.5.") %>%
+  mutate(cluster = 1:n())
+for.table = inner_join(P.means, cluster.means, by='cluster') %>%
+  mutate(P=round(100*mean.x)/100, score=round(mean.y, 1), CI=paste(round(lower.y, 1), ' to ', round(upper.y, 1), sep='')) %>%
+  select(cluster, P, score, CI)
+pander(for.table, style='simple')
+# latex 
+zz = file('latex.tab.P.cluster.txt','w')
+cat(Hmisc::latexTabular(for.table), file=zz)
+close(zz)
+```
+
+The columns are the percent probabilities ($\pi$) and cluster means ($\overline{x}$) and confidence intervals.
+
+
+#### Examine uncertainty in group membership
+
+In the plot below we examine the difference from the modal cluster for each university. 
+A score of zero indicates perfect membership.
+
+```{r cluster.uncertainty}
+mat = as.matrix(bugs.results.detail$sims.array[,1,]) # chains
+index = grep('class', colnames(mat))
+mat = mat[, index]
+uncertain = NULL
+for (i in 1:ncol(mat)){
+  tab = table(mat[,i]) # table of frequencies
+  stat = (nrow(mat) - max(tab)) / nrow(mat)  # disagreement from mode
+  mode = names(tab[which(tab==max(tab))])
+  frame = data.frame(mode = mode, entropy=stat)
+  uncertain = rbind(uncertain, frame)
+}
+uplot = ggplot(data=uncertain, aes(x=factor(mode), y=entropy))+
+  geom_boxplot()+
+  theme_bw()+
+  xlab('Modal cluster')+
+  ylab('Difference from mode')
+uplot
+```
+
+#### Cross-tabulation of changes in cluster membership (only those in both years)
+
+```{r cluster.membership}
+# look for change in group
+wide = dcast(affiliation ~ year, data=for.cluster, value.var='cluster.member')
+wide$y2016 = factor(wide$`2016`)
+wide$y2017 = factor(wide$`2017`)
+table = tabular(y2016 + 1~ (y2017+1) * (n=1), data=wide) # excludes missing
+pander(table)
+# for stats below
+tab = with(wide, table(y2016, y2017))
+no.change = sum(diag(tab))
+N = sum(tab)
+# output to latex
+zz = file('latex.tab.cluster.txt','w')
+cat(Hmisc::latexTabular(table), file=zz)
+close(zz)
+```
+
+The number of universities that did not change cluster between 2016 and 2017 was `r no.change` (`r round(100*no.change/N, 0)`%). 
+
+##### Universities that went from a '5' to a '4'
+
+```{r list.fallers}
+list = dplyr::filter(wide, `2016`=='5' & `2017` == '4') %>%
+  select('affiliation')
+pander(list, style='simple')
+```
+
+##### Universities that went from a '3' to a '4'
+
+```{r list.risers}
+list = dplyr::filter(wide, `2016`=='3' & `2017` == '4') %>%
+  select('affiliation')
+pander(list, style='simple')
+```
+
+#### Cross-tabulation of changes in cluster membership (including those under 2 in one year)
+
+```{r cluster.membership.missing}
+wide$`2016`[is.na(wide$`2016`)] = 'Missing' 
+wide$y2016 = factor(wide$`2016`, levels=c(1,2,3,4,5,'Missing'))
+wide$`2017`[is.na(wide$`2017`)] = 'Missing' 
+wide$y2017 = factor(wide$`2017`, levels=c(1,2,3,4,5,'Missing'))
+table = tabular(y2016  + 1 ~ (y2017 + 1) * (n=1), data=wide) # excludes missing
+pander(table)
+# for stats below
+tab = with(wide, table(y2016, y2017))
+# P of modal group
+#Mode(bugs.results.detail$sims.array[,,100])
+# output to latex
+zz = file('latex.tab.cluster.under2.txt','w')
+cat(Hmisc::latexTabular(table), file=zz)
+close(zz)
+```
+
+
+```{r latex, include=FALSE}
+## top ten table output to latex 
+# merge scores, clusters and bootstrap 
+# 2016
+table.2016 = inner_join(stats2016.top20[1:10,], stats2016, by=c('Affiliation'='affiliation')) %>% mutate(year=2016) # bootstrap and mean
+wide.2016 = dplyr::select(wide, affiliation, `2016`) %>% rename('cluster' = `2016`) # cluster
+table.2016 = inner_join(table.2016, wide.2016, by=c('Affiliation'='affiliation'))
+# 2017
+table.2017 = inner_join(stats2017.top20[1:10,], stats2017, by=c('Affiliation'='affiliation')) %>% mutate(year=2017)
+wide.2017 = dplyr::select(wide, affiliation, `2017`) %>% rename('cluster' = `2017`)
+table.2017 = inner_join(table.2017, wide.2017, by=c('Affiliation'='affiliation'))
+make.table = rbind(table.2016, table.2017)
+#
+make.table = mutate(make.table, 
+                    `Pr top 10` = round(`Pr top 10`, 2),
+                    wsum = round(wsum, 1),
+                    range=paste(`Median rank`, ' (', `Lower rank`, ' to ', `Upper rank`, ')', sep='')) %>%
+  select(year, Affiliation, n, wsum, `Pr top 10`, range, cluster)
+# output to latex
+zz = file('latex.tab.top10.txt','w')
+cat(Hmisc::latexTabular(make.table), file=zz)
+close(zz)
+```
+
+### Alternative clustering #1
+
+We re-run the Bayesian model but without the sample size.
+The model has a lot more uncertainty in cluster membership.
+
+```{r bayes.cluster.alternative}
+# only run if not already saved
+if(length(dir(pattern='bugs.cluster.results.alternative.RData')) == 0){ # only run if results file does not already exist
+  bugsfile = 'cluster.bugs.alternative.txt'
+  bugs = file(bugsfile, 'w')
+  cat('model{
+    for (i in 1:N){
+       wsum[i] ~ dnorm(mu[i], tau)
+       mu[i] <- cluster[class[i]] # mean dependent on class membership
+       class[i] ~ dcat(P[1:N.clust]) # class membership	
+    }
+# minimum cluster size 
+    for (k in 1:N.clust){
+      P.dash[k] ~ dunif(1, 24.75) # upper limit is 99/4
+      P[k] <- P.dash[k] / P.total
+    }
+    P.total <- sum(P.dash[1:N.clust])
+# ordered values for mean
+    c[1] ~ dexp(1) 
+    cluster[1] <- 2 + c[1] # because of two minimum
+    for (k in 2:N.clust){
+       c[k] ~ dexp(1)
+       cluster[k] <- c[k] + cluster[k-1] # always increase
+    }
+    tau ~ dgamma(1, 1)
+}\n', file=bugs)
+  close(bugs)
+  
+  # Just above 2
+  for.cluster = dplyr::filter(istats, wsum > 2)
+  # Pre-specify cluster size of 5
+  N.clust = 5
+  bdata = list(N=nrow(for.cluster), N.clust=N.clust, wsum=for.cluster$wsum) #
+  inits = list(list(tau=0.1, c=rep(1,5), P.dash=rep(1, 5), class=rep(1, nrow(for.cluster))))
+  parms = c('cluster','class','P','tau')
+  bugs.results.detail =  bugs(data=bdata, inits=inits, parameters=parms, model.file=bugsfile,
+                              n.chains=1, n.iter=5000, debug=FALSE, DIC=FALSE,
+                              bugs.directory="c:/Program Files/WinBUGS14")
+  # save
+  save(bugs.results.detail, for.cluster, file='bugs.cluster.results.alternative.RData')
+}
+if(length(dir(pattern='bugs.cluster.results.alternative.RData')) > 0){
+  load('bugs.cluster.results.alternative.RData') # load existing results
+}
+```
+
+
+### Cluster means and 95% credible intervals (alternative clustering)
+
+```{r plot.cluster.means.alternative}
+cluster.means = bugs.results.detail$summary[grep('cluster', row.names(bugs.results.detail$summary)), c(1,3,7)]
+cluster.means = data.frame(cluster.means) %>%
+  rename('lower'="X2.5.", 'upper'="X97.5.") %>%
+  mutate(cluster = 1:n())
+mplot = ggplot(data=cluster.means, aes(x=mean, xmin=lower, xmax=upper, y=cluster))+
+  geom_point(size=2)+
+  geom_errorbarh(height=0, size=1.1)+
+  theme_bw()+
+  ylab('Cluster')+
+  xlab('Score')+
+  theme(panel.grid.minor = element_blank())
+mplot
+```
+
+#### Examine uncertainty in group membership
+
+In the plot below we examine the difference from the modal cluster for each university. 
+A score of zero indicates perfect membership.
+
+```{r cluster.uncertainty.alternative}
+mat = as.matrix(bugs.results.detail$sims.array[,1,]) # chains
+index = grep('class', colnames(mat))
+mat = mat[, index]
+uncertain = NULL
+for (i in 1:ncol(mat)){
+  tab = table(mat[,i]) # table of frequencies
+  stat = (nrow(mat) - max(tab)) / nrow(mat)  # disagreement from mode
+  mode = names(tab[which(tab==max(tab))])
+  frame = data.frame(mode = mode, entropy=stat)
+  uncertain = rbind(uncertain, frame)
+}
+uplot = ggplot(data=uncertain, aes(x=factor(mode), y=entropy))+
+  geom_boxplot()+
+  theme_bw()+
+  xlab('Modal cluster')+
+  ylab('Difference from mode')
+uplot
+```
+
+### Alternative clustering #2
+
+Here we use the alternative clustering assuming a Gaussian mixture model fitted using a non-Bayesian EM algorithm. This clustering does not account for the sample size.
+
+```{r alt.cluster}
+fit = Mclust(data=for.cluster$wsum, G=1:5, modelNames="V", verbose=FALSE)
+summary(fit)
+# density plot
+plot(fit, what="density", main="", xlab="Score")
+rug(for.cluster$wsum) 
+```
+
+
+```{r include=FALSE}
+## prepare processed data for shiny
+load("bugs.cluster.results.RData") # re-load bayesian cluster data
+# a) merge Bayesian cluster model with bootstrap data
+intervals.2016$year = 2016
+intervals.2017$year = 2017
+intervals = dplyr::bind_rows(intervals.2016, intervals.2017)
+results = left_join(for.cluster, intervals, by=c('year','affiliation')) # only where there's cluster data, so score of 2+
+# b) merge in region and country information
+country = select(papers, country, Region, affiliation) %>%
+  unique()
+# if missing affiliation then set country and region to missing (else merge is messed up)
+index = country$affiliation == 'Missing'
+country$country[index] = 'Missing'
+country$Region[index] = 'Missing'
+country = unique(country) # now remove doubled-up missing rows
+results = left_join(results, country, by=c('affiliation')) %>%
+  select(year, country, Region, affiliation, wsum, n, rank, cluster.member, p10, rlower, rupper)
+save(results, file = 'Processed.papers.for.Shiny.RData')
+```

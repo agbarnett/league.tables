@@ -11,6 +11,14 @@ load('Papers2.RData') # from equator.data.R
 papers = rbind(papers, papers.temp); rm(papers.temp) # combine two data sets
 # make year
 papers$year = as.numeric(substr(as.character(papers$date),1,4))
+# convert to characters
+papers$country = as.character(papers$country)
+papers$affiliation = as.character(papers$affiliation)
+papers$issue = as.character(papers$issue)
+papers$volume = as.character(papers$volume)
+papers$doi = as.character(papers$doi)
+papers$title = as.character(papers$title)
+papers$journal = as.character(papers$journal)
 # one edit
 papers$country[papers$country=='Geneve'] = 'Switzerland'
 # add region (had to edit some countries by hand)
@@ -286,6 +294,10 @@ papers$affiliation[index] = "University of Coimbra"
 index = papers$affiliation=='China Medical University' & papers$country=='Taiwan'
 papers$affiliation[index] = 'China Medical University, Taiwan'
 
+# Multiple different countries
+index = papers$affiliation=='University of Hong Kong'
+papers$country[index] = 'China'
+
 ### Leiden affiliation merges, see http://www.leidenranking.com/information/universities
 ## l1) read in Leiden affilations
 leiden = read_excel('CWTS Leiden Ranking 2018 - Affiliated institutions.xlsx', skip=1)
@@ -298,8 +310,13 @@ leiden = leiden[!index,]
 # l2) merge Leiden and papers
 papers = merge(papers, leiden, by.x='affiliation', by.y='Affiliated institution', all.x=T) 
 # l3) overwrite affiliation 
+# split by missing or now
 index = is.na(papers$University) == F
-papers$affiliation[index] = papers$University[index]
+complete = papers[!index,]
+missing = papers[index,]
+missing$affiliation = missing$University # overwrite
+papers = rbind(complete, missing)
+papers = subset(papers, select=-University) # remove no longer needed variable
 
 ## blank some daft affiliations
 index = papers$affiliation %in% unique( c('Research Unit','Research and Development Unit','Research and Development',
@@ -307,7 +324,8 @@ index = papers$affiliation %in% unique( c('Research Unit','Research and Developm
                                           'Ministry of Health','Medical Affairs Department',
                                           'Independent Researcher','Independent Consultant','Division of Cardiology',
                                           'Division of Internal Medicine','Division of Cardiovascular Surgery',
-                                          'College of Medicine','College of Nursing'
+                                          'College of Medicine','College of Nursing',
+                                          'Cancer Center','Cardiac Surgery Division','Cardiac Surgery Unit',
                                           'Chicago','London', 'UK', 'Prevention', 'Teaching', 'Faculty of Medicine', 'Cardiology', 'Cardiovascular Diseases', 'Research','Research Center', 'Epidemiology', 'Central', 'Office 2.47', 'Office 2.49', 'Central', 'Director', 'Medical Centre', 'San Francisco', 'Departments of Epidemiology',' Section of Neurosurgery', 'School of Dentistry', 'Private Dental Clinic', 'Private Clinic', 'University Medicine', 'School of Pharmacy', 'Engineering School',
                                           'School of Pharmacy','School of Psychology','School of Surgery','School of Nursing', "School of Public Health", "School of Clinical Sciences", "School of Medicine", "School of Food Science and Nutrition", "Medical School", 
                                           'Faculty of Medical and Health Sciences, School of Population Health',
@@ -704,8 +722,11 @@ to.combine[[338]] =c('Radboud University Nijmegen','Radboud University')
 to.combine[[339]] =c("Universidade Federal do Ceará", "University of Ceara", "Federal University of Ceará")
 to.combine[[340]] =c("Florey Institute of Neuroscience and Mental Health", 'University of Melbourne')
 to.combine[[341]] =c("VU University Medical Center", 'VU University Amsterdam')
+to.combine[[342]] =c('Cancer Council New South Wales','Cancer Council Queensland','Cancer Council SA','Cancer Council Victoria','Cancer Council Australia')
+#Azienda Ospedaliero - Universitaria di Modena Policlinico
+
 # switch back wrongly removed suffix
-to.combine[[342]] =c('^Baylor$','Baylor College of Medicine') # 
+to.combine[[343]] =c('^Baylor$','Baylor College of Medicine') # 
 
 # run the combines/changes
 for (k in 1:length(to.combine)){
@@ -762,9 +783,18 @@ papers$country[ grep("Chulalongkorn University", papers$affiliation)] = 'Thailan
 index = papers$country == 'Australia' & papers$affiliation == 'University of Newcastle' & is.na(papers$affiliation)==F
 papers$affiliation[index] = 'University of Newcastle, Australia' # Be consistent with country suffix
 
-# save
-papers = subset(papers, select=c("doi","affiliation","country","year","Region","University",'weight'))
+## fix regions (use given countries to fix regions)
+true.regions = read_excel('country.data.xls', skip=2, sheet=1)
+for (this.region in unique(true.regions$Region)){
+  countries = dplyr::filter(true.regions, Region==this.region)$Country
+  index = papers$country %in% countries
+  papers$Region[index] = this.region
+}
+
+### save ###
+papers = subset(papers, select=c("doi","affiliation","country","year","Region",'weight'))
 save(papers, pubmed.frame, date.searched, file='Papers.for.Shiny.RData') # 
+
 
 # check: look for repeats of university names
 all = as.character(unique(papers$affiliation))
@@ -782,6 +812,9 @@ for (k in 756:length(unis)){
   }
 }
 close(out)
+
+
+
 
 # final checks
 all = as.character(unique(papers$affiliation))
