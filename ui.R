@@ -57,7 +57,12 @@ tags$a(href="https://www.equator-network.org/", "EQUATOR guidelines"))))),
     
     mainPanel(
     h3('Rankings'),
-    tableOutput(outputId = 'table')
-    ) # end of main panel
+    tableOutput(outputId = 'table'),
 
+    # Footer
+    hr(),
+    print("This is academic research published in partnership with Elsevier-Scopus. All rights reserved to the author and data owner.")
+
+    ) # end of main panel
+    
 )))
