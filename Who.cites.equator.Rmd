@@ -735,6 +735,9 @@ Groups 1 and 2 are very uncertain and also have a similar mean. These two groups
 wide = dcast(affiliation ~ year, data=for.cluster, value.var='cluster.member')
 wide$y2016 = factor(wide$`2016`)
 wide$y2017 = factor(wide$`2017`)
+# remove missing (only in both years)
+wide = filter(wide, is.na(y2016)==FALSE & is.na(y2017)==FALSE)
+# now table
 table = tabular(y2016 + 1~ (y2017+1) * (n=1), data=wide) # excludes missing
 pander(table)
 # for stats below
