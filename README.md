@@ -22,10 +22,10 @@ The two key data sets (both available in csv and RData format) are:
 * country               
 * Region   
 * affiliation     
-* wsum, sum of fractional papers   
+* wsum, sum of fractional papers per university which determines the rank  
 * n, number of papers 
 * rank, rank per year 
-* cluster.member, estimated cluster membership, 1 (lowest) to 5 (highest)   
+* cluster.member, estimated cluster based on `wsum` from 1 (lowest) to 5 (highest)   
 * p10, bootstrap probability of being in the top 10
 * rlower, bootstrap lower 95% confidence interval
 * rupper, bootstrap upper 95% confidence interval
