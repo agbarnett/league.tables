@@ -51,7 +51,11 @@ tags$a(href="https://www.equator-network.org/", "EQUATOR guidelines"))))),
                                "Latin America and Caribbean" = 'LATIN AMER',
                                "North America" = "NORTHERN AMERICA",
                                "Oceania" = 'OCEANIA'), 
-                   selected = 'World')
+                   selected = 'World'), 
+      
+      textInput(inputId = "search",
+                label = "Search for universities (case insensitive)",
+                value='')
 
     ), # end of sidebar panel
     

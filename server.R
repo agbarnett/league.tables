@@ -28,6 +28,14 @@ shinyServer(function(input, output) {
       res$rank = 1:nrow(res)
     }
     
+    # filter by search
+    if(input$search != ''){
+      search = tolower(input$search)
+      index = grep(pattern=search, tolower(res$affiliation)) #
+      res = res[index, ]
+    }
+    
+    
     stats = dplyr::mutate(res, interval = paste(round(rlower), ' to ', round(rupper), sep='')) %>%
         select(overall, interval, rank, affiliation, wsum, cluster.member) %>%
         rename('Overall rank'=overall, '95% interval'=interval, 'Rank'=rank, 'Affiliation'=affiliation,
