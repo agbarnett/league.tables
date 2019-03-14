@@ -10,7 +10,7 @@ The key R files are:
 
 The two key data sets (both available in csv and RData format) are:
 
-**1. Papers.for.Analysis** which are the 47,876 papers used to create the league tables, with the variables:
+**1. Papers.for.Analysis** which are a random sample of 500 of the 47,876 papers used to create the league tables, with the variables:
 * doi
 * affiliation
 * affid, _Scopus_ affiliation ID number
@@ -31,3 +31,5 @@ The two key data sets (both available in csv and RData format) are:
 * p10, bootstrap probability of being in the top 10
 * rlower, bootstrap lower 95% confidence interval
 * rupper, bootstrap upper 95% confidence interval
+
+**3. pubmed.frame** which details the EQUATOR papers used to count citations:
