@@ -8,7 +8,7 @@ The key R files are:
 
 The two key data sets (both available in csv and RData format) are:
 
-**1. Papers.for.Analysis** which are a random sample of 500 of the 47,876 papers used to create the league tables, with the variables:
+**1. Papers.for.Analysis.500** which are a random sample of 500 of the 47,876 papers used to create the league tables, with the variables:
 * doi
 * affiliation
 * affid, _Scopus_ affiliation ID number
