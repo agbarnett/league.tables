@@ -17,7 +17,7 @@ The two key data sets (both available in csv and RData format) are:
 * Region
 * weight, fraction count of authors in the range (0,1]
 
-**2. Processed.papers.for.Shiny** which is the data used to create the interactive league tables in _Shiny_, with the variables:
+**2. Processed.papers.for.Shiny** which is the summary data used to create the interactive league tables in _Shiny_, with the variables:
 * year, 2016 or 2017
 * country               
 * Region   
