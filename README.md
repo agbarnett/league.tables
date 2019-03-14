@@ -30,8 +30,8 @@ The two key data sets (both available in csv and RData format) are:
 * rlower, bootstrap lower 95% confidence interval
 * rupper, bootstrap upper 95% confidence interval
 
-**3. pubmed.frame** which details the (EQUATOR)[http://www.equator-network.org/] papers used to count citations:
-* type, CONSORT, PRIMSA or STROBE
+**3. pubmed.frame** which details the [EQUATOR](http://www.equator-network.org) papers used to count citations:
+* type, type of EQUATOR paper: CONSORT, PRIMSA or STROBE
 * title, paper title
 * journal, journal title
 * date, date of publication
