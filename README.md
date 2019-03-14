@@ -1,5 +1,3 @@
-[![DOI](https://zenodo.org/badge/137861982.svg)](https://zenodo.org/badge/latestdoi/137861982)
-
 # University league table of good research practice
 Creating an international university league table based on a good research practice.
 
