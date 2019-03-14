@@ -31,3 +31,9 @@ The two key data sets (both available in csv and RData format) are:
 * rupper, bootstrap upper 95% confidence interval
 
 **3. pubmed.frame** which details the EQUATOR papers used to count citations:
+* type, CONSORT, PRIMSA or STROBE
+* title, paper title
+* journal, journal title
+* date, date of publication
+* pmid, pubmed ID number
+* year, year published
